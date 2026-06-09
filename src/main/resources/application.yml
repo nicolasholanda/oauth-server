@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: oauth-server
+  datasource:
+    url: jdbc:h2:mem:oauthdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+oauth:
+  jwt:
+    issuer: http://localhost:8080
+    secret: change-me-in-production-this-is-a-development-only-secret-key-with-enough-length
+    access-token-ttl-seconds: 3600
+  authorization-code:
+    ttl-seconds: 600
+  refresh-token:
+    ttl-seconds: 1209600
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    com.oauth.server: DEBUG
