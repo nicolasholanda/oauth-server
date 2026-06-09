@@ -33,3 +33,5 @@ application-local.properties
 .env.local
 
 commits.md
+
+.claude/
