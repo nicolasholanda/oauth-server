@@ -6,6 +6,8 @@ import com.oauth.server.domain.entity.RefreshToken;
 import com.oauth.server.domain.entity.Scope;
 import com.oauth.server.domain.entity.User;
 import com.oauth.server.domain.enums.GrantType;
+import com.oauth.server.exception.OAuth2ErrorCode;
+import com.oauth.server.exception.OAuth2Exception;
 import com.oauth.server.repository.AccessTokenRepository;
 import com.oauth.server.repository.RefreshTokenRepository;
 import com.oauth.server.repository.UserRepository;
@@ -59,13 +61,13 @@ public class PasswordGrantStrategy implements GrantStrategy {
         String password = requireParam(parameters, "password");
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("invalid_grant: invalid username or password"));
+                .orElseThrow(() -> new OAuth2Exception(OAuth2ErrorCode.INVALID_GRANT, "invalid username or password"));
 
         if (!user.isEnabled()) {
-            throw new IllegalArgumentException("invalid_grant: user is disabled");
+            throw new OAuth2Exception(OAuth2ErrorCode.INVALID_GRANT, "user is disabled");
         }
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new IllegalArgumentException("invalid_grant: invalid username or password");
+            throw new OAuth2Exception(OAuth2ErrorCode.INVALID_GRANT, "invalid username or password");
         }
 
         Set<String> clientScopeNames = client.getScopes().stream()
@@ -100,7 +102,7 @@ public class PasswordGrantStrategy implements GrantStrategy {
     private String requireParam(Map<String, String> parameters, String name) {
         String value = parameters.get(name);
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("invalid_request: missing required parameter '" + name + "'");
+            throw new OAuth2Exception(OAuth2ErrorCode.INVALID_REQUEST, "missing required parameter '" + name + "'");
         }
         return value;
     }
@@ -120,7 +122,7 @@ public class PasswordGrantStrategy implements GrantStrategy {
         }
         for (String scope : requested) {
             if (!clientScopes.contains(scope)) {
-                throw new IllegalArgumentException("invalid_scope: '" + scope + "' is not allowed for this client");
+                throw new OAuth2Exception(OAuth2ErrorCode.INVALID_SCOPE, "'" + scope + "' is not allowed for this client");
             }
         }
         return requested;

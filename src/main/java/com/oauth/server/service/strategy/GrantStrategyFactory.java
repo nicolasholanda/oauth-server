@@ -1,6 +1,8 @@
 package com.oauth.server.service.strategy;
 
 import com.oauth.server.domain.enums.GrantType;
+import com.oauth.server.exception.OAuth2ErrorCode;
+import com.oauth.server.exception.OAuth2Exception;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
@@ -23,14 +25,14 @@ public class GrantStrategyFactory {
     public GrantStrategy get(GrantType grantType) {
         GrantStrategy strategy = strategies.get(grantType);
         if (strategy == null) {
-            throw new IllegalArgumentException("unsupported_grant_type: " + grantType.getValue());
+            throw new OAuth2Exception(OAuth2ErrorCode.UNSUPPORTED_GRANT_TYPE, grantType.getValue());
         }
         return strategy;
     }
 
     public GrantStrategy get(String grantTypeValue) {
         GrantType grantType = GrantType.fromValue(grantTypeValue)
-                .orElseThrow(() -> new IllegalArgumentException("unsupported_grant_type: " + grantTypeValue));
+                .orElseThrow(() -> new OAuth2Exception(OAuth2ErrorCode.UNSUPPORTED_GRANT_TYPE, grantTypeValue));
         return get(grantType);
     }
 }

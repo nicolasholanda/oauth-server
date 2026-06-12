@@ -6,6 +6,8 @@ import com.oauth.server.domain.entity.Client;
 import com.oauth.server.domain.entity.RefreshToken;
 import com.oauth.server.domain.entity.User;
 import com.oauth.server.domain.enums.GrantType;
+import com.oauth.server.exception.OAuth2ErrorCode;
+import com.oauth.server.exception.OAuth2Exception;
 import com.oauth.server.repository.AccessTokenRepository;
 import com.oauth.server.repository.AuthorizationCodeRepository;
 import com.oauth.server.repository.RefreshTokenRepository;
@@ -54,16 +56,16 @@ public class AuthorizationCodeGrantStrategy implements GrantStrategy {
         String redirectUri = requireParam(parameters, "redirect_uri");
 
         AuthorizationCode authorizationCode = authorizationCodeRepository.findByCode(code)
-                .orElseThrow(() -> new IllegalArgumentException("invalid_grant: authorization code not found"));
+                .orElseThrow(() -> new OAuth2Exception(OAuth2ErrorCode.INVALID_GRANT, "authorization code not found"));
 
         if (!authorizationCode.isUsable()) {
-            throw new IllegalArgumentException("invalid_grant: authorization code is expired or already used");
+            throw new OAuth2Exception(OAuth2ErrorCode.INVALID_GRANT, "authorization code is expired or already used");
         }
         if (!Objects.equals(authorizationCode.getClient().getId(), client.getId())) {
-            throw new IllegalArgumentException("invalid_grant: authorization code was issued to a different client");
+            throw new OAuth2Exception(OAuth2ErrorCode.INVALID_GRANT, "authorization code was issued to a different client");
         }
         if (!Objects.equals(authorizationCode.getRedirectUri(), redirectUri)) {
-            throw new IllegalArgumentException("invalid_grant: redirect_uri does not match the one used during authorization");
+            throw new OAuth2Exception(OAuth2ErrorCode.INVALID_GRANT, "redirect_uri does not match the one used during authorization");
         }
 
         authorizationCode.setUsed(true);
@@ -98,7 +100,7 @@ public class AuthorizationCodeGrantStrategy implements GrantStrategy {
     private String requireParam(Map<String, String> parameters, String name) {
         String value = parameters.get(name);
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("invalid_request: missing required parameter '" + name + "'");
+            throw new OAuth2Exception(OAuth2ErrorCode.INVALID_REQUEST, "missing required parameter '" + name + "'");
         }
         return value;
     }

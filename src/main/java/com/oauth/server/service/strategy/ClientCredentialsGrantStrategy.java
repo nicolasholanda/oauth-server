@@ -4,6 +4,8 @@ import com.oauth.server.domain.entity.AccessToken;
 import com.oauth.server.domain.entity.Client;
 import com.oauth.server.domain.entity.Scope;
 import com.oauth.server.domain.enums.GrantType;
+import com.oauth.server.exception.OAuth2ErrorCode;
+import com.oauth.server.exception.OAuth2Exception;
 import com.oauth.server.repository.AccessTokenRepository;
 import com.oauth.server.service.generator.TokenGenerator;
 import org.springframework.stereotype.Component;
@@ -38,7 +40,7 @@ public class ClientCredentialsGrantStrategy implements GrantStrategy {
     @Transactional
     public Result issue(Client client, Map<String, String> parameters) {
         if (!client.isConfidential()) {
-            throw new IllegalArgumentException("unauthorized_client: only confidential clients may use client_credentials");
+            throw new OAuth2Exception(OAuth2ErrorCode.UNAUTHORIZED_CLIENT, "only confidential clients may use client_credentials");
         }
 
         Set<String> clientScopeNames = client.getScopes().stream()
@@ -77,7 +79,7 @@ public class ClientCredentialsGrantStrategy implements GrantStrategy {
         }
         for (String scope : requested) {
             if (!clientScopes.contains(scope)) {
-                throw new IllegalArgumentException("invalid_scope: '" + scope + "' is not allowed for this client");
+                throw new OAuth2Exception(OAuth2ErrorCode.INVALID_SCOPE, "'" + scope + "' is not allowed for this client");
             }
         }
         return requested;

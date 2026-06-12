@@ -6,6 +6,8 @@ import com.oauth.server.domain.entity.Scope;
 import com.oauth.server.domain.entity.User;
 import com.oauth.server.domain.enums.GrantType;
 import com.oauth.server.domain.enums.ResponseType;
+import com.oauth.server.exception.OAuth2ErrorCode;
+import com.oauth.server.exception.OAuth2Exception;
 import com.oauth.server.repository.AuthorizationCodeRepository;
 import com.oauth.server.repository.ClientRepository;
 import com.oauth.server.repository.UserRepository;
@@ -47,9 +49,9 @@ public class AuthorizationService {
     public Result authorize(Map<String, String> parameters) {
         String responseTypeRaw = requireParam(parameters, "response_type");
         ResponseType responseType = ResponseType.fromValue(responseTypeRaw)
-                .orElseThrow(() -> new IllegalArgumentException("unsupported_response_type: " + responseTypeRaw));
+                .orElseThrow(() -> new OAuth2Exception(OAuth2ErrorCode.UNSUPPORTED_RESPONSE_TYPE, responseTypeRaw));
         if (responseType != ResponseType.CODE) {
-            throw new IllegalArgumentException("unsupported_response_type: only 'code' is supported");
+            throw new OAuth2Exception(OAuth2ErrorCode.UNSUPPORTED_RESPONSE_TYPE, "only 'code' is supported");
         }
 
         String clientId = requireParam(parameters, "client_id");
@@ -58,13 +60,13 @@ public class AuthorizationService {
         String state = parameters.get("state");
 
         Client client = clientRepository.findByClientId(clientId)
-                .orElseThrow(() -> new IllegalArgumentException("invalid_request: unknown client_id"));
+                .orElseThrow(() -> new OAuth2Exception(OAuth2ErrorCode.INVALID_REQUEST, "unknown client_id"));
 
         if (!client.supportsGrantType(GrantType.AUTHORIZATION_CODE)) {
-            throw new IllegalArgumentException("unauthorized_client: client may not use authorization_code grant");
+            throw new OAuth2Exception(OAuth2ErrorCode.UNAUTHORIZED_CLIENT, "client may not use authorization_code grant");
         }
         if (!client.hasRedirectUri(redirectUri)) {
-            throw new IllegalArgumentException("invalid_request: redirect_uri is not registered for this client");
+            throw new OAuth2Exception(OAuth2ErrorCode.INVALID_REQUEST, "redirect_uri is not registered for this client");
         }
 
         Set<String> clientScopes = client.getScopes().stream()
@@ -74,9 +76,9 @@ public class AuthorizationService {
         Set<String> grantedScopes = resolveScopes(clientScopes, requestedScopes);
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("access_denied: unknown user"));
+                .orElseThrow(() -> new OAuth2Exception(OAuth2ErrorCode.ACCESS_DENIED, "unknown user"));
         if (!user.isEnabled()) {
-            throw new IllegalArgumentException("access_denied: user is disabled");
+            throw new OAuth2Exception(OAuth2ErrorCode.ACCESS_DENIED, "user is disabled");
         }
 
         Instant now = Instant.now();
@@ -95,7 +97,7 @@ public class AuthorizationService {
     private String requireParam(Map<String, String> parameters, String name) {
         String value = parameters.get(name);
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("invalid_request: missing required parameter '" + name + "'");
+            throw new OAuth2Exception(OAuth2ErrorCode.INVALID_REQUEST, "missing required parameter '" + name + "'");
         }
         return value;
     }
@@ -115,7 +117,7 @@ public class AuthorizationService {
         }
         for (String scope : requested) {
             if (!clientScopes.contains(scope)) {
-                throw new IllegalArgumentException("invalid_scope: '" + scope + "' is not allowed for this client");
+                throw new OAuth2Exception(OAuth2ErrorCode.INVALID_SCOPE, "'" + scope + "' is not allowed for this client");
             }
         }
         return requested;

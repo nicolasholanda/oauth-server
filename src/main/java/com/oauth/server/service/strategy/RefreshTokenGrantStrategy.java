@@ -5,6 +5,8 @@ import com.oauth.server.domain.entity.Client;
 import com.oauth.server.domain.entity.RefreshToken;
 import com.oauth.server.domain.entity.User;
 import com.oauth.server.domain.enums.GrantType;
+import com.oauth.server.exception.OAuth2ErrorCode;
+import com.oauth.server.exception.OAuth2Exception;
 import com.oauth.server.repository.AccessTokenRepository;
 import com.oauth.server.repository.RefreshTokenRepository;
 import com.oauth.server.service.generator.CodeGenerator;
@@ -50,13 +52,13 @@ public class RefreshTokenGrantStrategy implements GrantStrategy {
         String refreshTokenValue = requireParam(parameters, "refresh_token");
 
         RefreshToken existing = refreshTokenRepository.findByTokenValue(refreshTokenValue)
-                .orElseThrow(() -> new IllegalArgumentException("invalid_grant: refresh token not found"));
+                .orElseThrow(() -> new OAuth2Exception(OAuth2ErrorCode.INVALID_GRANT, "refresh token not found"));
 
         if (!existing.isActive()) {
-            throw new IllegalArgumentException("invalid_grant: refresh token is expired or revoked");
+            throw new OAuth2Exception(OAuth2ErrorCode.INVALID_GRANT, "refresh token is expired or revoked");
         }
         if (!Objects.equals(existing.getClient().getId(), client.getId())) {
-            throw new IllegalArgumentException("invalid_grant: refresh token was issued to a different client");
+            throw new OAuth2Exception(OAuth2ErrorCode.INVALID_GRANT, "refresh token was issued to a different client");
         }
 
         Set<String> originalScopes = new HashSet<>(existing.getScopes());
@@ -98,7 +100,7 @@ public class RefreshTokenGrantStrategy implements GrantStrategy {
     private String requireParam(Map<String, String> parameters, String name) {
         String value = parameters.get(name);
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("invalid_request: missing required parameter '" + name + "'");
+            throw new OAuth2Exception(OAuth2ErrorCode.INVALID_REQUEST, "missing required parameter '" + name + "'");
         }
         return value;
     }
@@ -118,7 +120,7 @@ public class RefreshTokenGrantStrategy implements GrantStrategy {
         }
         for (String scope : requested) {
             if (!originalScopes.contains(scope)) {
-                throw new IllegalArgumentException("invalid_scope: '" + scope + "' was not in the original grant");
+                throw new OAuth2Exception(OAuth2ErrorCode.INVALID_SCOPE, "'" + scope + "' was not in the original grant");
             }
         }
         return requested;
